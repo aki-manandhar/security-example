@@ -56,6 +56,22 @@ app.use(
     keys: [config.COOKIE_KEY_1, config.COOKIE_KEY_2], //'secret key'
   })
 );
+app.use((req, res, next) => {
+  // Stub out missing regenerate and save functions.
+  // These don't make sense for client side sessions.
+  if (req.session && !req.session.regenerate) {
+    req.session.regenerate = (cb) => {
+      cb();
+    };
+  }
+  if (req.session && !req.session.save) {
+    req.session.save = (cb) => {
+      cb();
+    };
+  }
+  next();
+});
+
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -91,9 +107,14 @@ app.get(
   }
 );
 
-app.get('/auth/logout', (req, res) => {
-  req.logout(); //Removes req.user and clears any logged in session
-  return res.redirect('/');
+app.get('/auth/logout', (req, res, next) => {
+  //Removes req.user and clears any logged in session
+  req.logout((err) => {
+    if (err) {
+      return next(err);
+    }
+    res.redirect('/');
+  });
 });
 
 app.get('/secret', checkLoggedIn, (req, res) => {
